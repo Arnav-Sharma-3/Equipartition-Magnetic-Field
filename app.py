@@ -107,9 +107,7 @@ if uploaded_file:
                 mime="text/csv"
             )
 
-# -----------------------
-# Credits Footer
-# -----------------------
+# ✅ Credits: Always visible at the bottom
 st.markdown(
     """
     <hr style="margin-top: 3rem; margin-bottom: 1rem;">
@@ -119,4 +117,5 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True
+)
 )
