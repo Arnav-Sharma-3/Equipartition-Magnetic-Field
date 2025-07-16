@@ -46,11 +46,12 @@ def compute_fields(alpha, g1, g2, v0, s_v0, l, b, w, D_l, Sf, x=X_FACTOR):
     T1 = 3 * L1 / (2 * C3 * (M_E * C_LIGHT**2)**(2 * alpha - 1))
     T2 = (1 + x) / (1 - alpha) * (3 - p) / (2 - p) * (math.sqrt(2/3) * C1)**(1 - alpha)
     A  = T1 * T2 * T6
-
+    L  = L1/ (1 - alpha) * (math.sqrt(2/3) * C1 * (m_e c**2)**2 )**(1 - alpha) * T4
+    
     # Compute B_min, B_eq in Gauss, then convert to µG
     B_min = ((4 * math.pi * (1 + alpha) * A) / V)**(1 / (3 + alpha))
     B_eq  = (2 / (1 + alpha))**(1 / (3 + alpha)) * B_min
-    return B_min * 1e6, B_eq * 1e6  # µG
+    return B_min * 1e6, B_eq * 1e6, L # µG
 
 # -----------------------
 # Streamlit App Layout
@@ -92,9 +93,10 @@ if uploaded_file:
             )
             df["B_min (µG)"] = results[0].round(3)
             df["B_eq (µG)"]  = results[1].round(3)
-
+            df["L (W/m^2)"]  = results[2].round(3)
+            
             # Only show the three columns
-            df_out = df[["Source", "B_min (µG)", "B_eq (µG)"]]
+            df_out = df[["Source", "B_min (µG)", "B_eq (µG), L (W/m^2)"]]
             st.success("✅ Calculation complete!")
             st.dataframe(df_out)
 
