@@ -1,1 +1,8 @@
+[theme]
+base = "light"
+primaryColor = "#e60000"      # Bright red
+backgroundColor = "#ffffff"   # White background
+secondaryBackgroundColor = "#ffe6e6"  # Light pinkish-red background
+textColor = "#000000"         # Black text
+font = "sans serif"
 
