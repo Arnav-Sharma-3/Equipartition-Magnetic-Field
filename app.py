@@ -59,7 +59,7 @@ st.set_page_config(page_title="Galaxy Magnetic Field Calculator", layout="center
 st.title("🌀 Lobe Magnetic Field Estimator")
 st.markdown(
     """
-    Upload a CSV/TSV with columns:
+    Upload a CSV/TSV with columns:  
     `Source, alpha, gamma1, gamma2, v0, s_v0, l, b, w, D_l, Sf`  
     — where **l, b, w** are in **kpc**, **D_l** in **Mpc**, **v0** in **MHz**, **s_v0** in **Jy**.  
     The app will compute **B_min** & **B_eq** in µG for each row.
@@ -106,3 +106,17 @@ if uploaded_file:
                 file_name="magnetic_fields_results.csv",
                 mime="text/csv"
             )
+
+# -----------------------
+# Credits Footer
+# -----------------------
+st.markdown(
+    """
+    <hr style="margin-top: 3rem; margin-bottom: 1rem;">
+    <div style='text-align: center; font-size: 0.9rem; color: gray;'>
+        Created by <b>Arnav Sharma</b><br>
+        Under the Guidance of <b>Dr. Chiranjib Konar</b>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
