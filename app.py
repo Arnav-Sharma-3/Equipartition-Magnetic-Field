@@ -96,7 +96,7 @@ if uploaded_file:
             df["L (Erg/s)"]  = results[2].round(3)
             
             # Only show the three columns
-            df_out = df[["Source", "B_min (µG)", "B_eq (µG)", "L Erg/s)"]]
+            df_out = df[["Source", "B_min (µG)", "B_eq (µG)", "L (Erg/s)"]]
             st.success("✅ Calculation complete!")
             st.dataframe(df_out)
 
