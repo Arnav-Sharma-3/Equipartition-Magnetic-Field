@@ -13,45 +13,41 @@ M_E      = 9.1093837139e-28    # electron mass (g)
 C_LIGHT  = 2.99792458e10       # speed of light (cm/s)
 X_FACTOR = 0.0                 # proton/electron energy ratio
 
+
 def compute_fields(alpha, g1, g2, v0, s_v0, l, b, w, D_l, Sf, x=X_FACTOR):
-    """
-    Compute B_min and B_eq in µG for one row of input.
-      - l, b, w should be in kpc
-      - D_l in Mpc
-      - v0 in MHz
-      - s_v0 in Jy
-    """
     # Convert kpc → cm, Mpc → cm
-    l   *= Sf * CGS_KPC
-    b   *= Sf * CGS_KPC
-    w   *= Sf * CGS_KPC
-    D_l *= CGS_MPC
+    l_cm = l * Sf * CGS_KPC
+    b_cm = b * Sf * CGS_KPC
+    w_cm = w * Sf * CGS_KPC
+    D_l_cm = D_l * CGS_MPC
 
     # Convert MHz → Hz, Jy → erg/s/cm²/Hz
-    v0   *= 1e6
-    s_v0 *= 1e-23
+    v0_hz = v0 * 1e6
+    s_v0_cgs = s_v0 * 1e-23
 
-    # Derived quantities
-    p   = 2 * alpha + 1
-    V   = (4/3) * math.pi * l * b * w * 0.125
-    L1  = 4 * math.pi * D_l**2 * s_v0 * v0**alpha
+    p = 2 * alpha + 1
+    V = (4 / 3) * math.pi * l_cm * b_cm * w_cm * 0.125
+    L1 = 4 * math.pi * D_l_cm**2 * s_v0_cgs * v0_hz**alpha
 
-    # Synchrotron integration terms
     T3 = (g2 - 1)**(2 - p) - (g1 - 1)**(2 - p)
     T4 = (g2 - 1)**(2 * (1 - alpha)) - (g1 - 1)**(2 * (1 - alpha))
     T5 = (g2 - 1)**(3 - p) - (g1 - 1)**(3 - p)
     T6 = T3 * T4 / T5
 
-    # Field-strength prefactors
     T1 = 3 * L1 / (2 * C3 * (M_E * C_LIGHT**2)**(2 * alpha - 1))
     T2 = (1 + x) / (1 - alpha) * (3 - p) / (2 - p) * (math.sqrt(2/3) * C1)**(1 - alpha)
-    A  = T1 * T2 * T6
-    L  = L1/ (1 - alpha) * (math.sqrt(2/3) * C1 * (M_E * C_LIGHT**2)**2 )**(1 - alpha) * T4
-    
-    # Compute B_min, B_eq in Gauss, then convert to µG
+    A = T1 * T2 * T6
+    L = L1 / (1 - alpha) * (math.sqrt(2/3) * C1 * (M_E * C_LIGHT**2)**2)**(1 - alpha) * T4
+
     B_min = ((4 * math.pi * (1 + alpha) * A) / V)**(1 / (3 + alpha))
-    B_eq  = (2 / (1 + alpha))**(1 / (3 + alpha)) * B_min
-    return B_min * 1e6, B_eq * 1e6, L # µG, Erg/s
+    B_eq = (2 / (1 + alpha))**(1 / (3 + alpha)) * B_min
+
+    u_b = B_min**2 / (8 * math.pi)
+    u_p = A / V * B_min**(-1 + alpha)
+    u_tot = u_p + u_b
+
+    return alpha, B_min * 1e6, B_eq * 1e6, D_l_cm, L, u_p, u_b, u_tot
+
 
 # -----------------------
 # Streamlit App Layout
@@ -63,26 +59,23 @@ st.markdown(
     Upload a CSV/TSV with columns:  
     `Source, alpha, gamma1, gamma2, v0, s_v0, l, b, w, D_l, Sf`  
     — where **l, b, w** are in **kpc**, **D_l** in **Mpc**, **v0** in **MHz**, **s_v0** in **Jy**.  
-    The app will compute **B_min** & **B_eq** in µG for each row.
+    The app will compute **B_min**, **B_eq**, **Energy Densities**, and **Luminosity** in CGS units.
     """
 )
 
 uploaded_file = st.file_uploader("Upload your data file", type=["csv", "tsv", "txt"])
 if uploaded_file:
-    # Auto-detect delimiter
     sep = "\t" if uploaded_file.name.endswith((".tsv", ".txt")) else ","
     try:
         df = pd.read_csv(uploaded_file, sep=sep, comment="#")
     except Exception as e:
         st.error(f"📂 Could not read file: {e}")
     else:
-        # Validate columns
         required = ["Source","alpha","gamma1","gamma2","v0","s_v0","l","b","w","D_l","Sf"]
         missing = [c for c in required if c not in df.columns]
         if missing:
             st.error(f"❌ Missing columns: {', '.join(missing)}")
         else:
-            # Vectorized compute
             results = df.apply(
                 lambda r: compute_fields(
                     r["alpha"], r["gamma1"], r["gamma2"],
@@ -91,25 +84,29 @@ if uploaded_file:
                     r["D_l"],   r["Sf"]
                 ), axis=1, result_type="expand"
             )
-            df["B_min (µG)"] = results[0].round(3)
-            df["B_eq (µG)"]  = results[1].round(3)
-            df["L (Erg/s)"]  = results[2].round(3)
-            
-            # Only show the three columns
-            df_out = df[["Source", "B_min (µG)", "B_eq (µG)", "L (Erg/s)"]]
+            df_out = pd.DataFrame({
+                "Source": df["Source"],
+                "Alpha": results[0],
+                "B_min (\u00b5G)": results[1].round(3),
+                "B_eq (\u00b5G)": results[2].round(3),
+                "D_L (cm)": results[3].apply(lambda x: f"{x:.2e}"),
+                "L (erg/s)": results[4].apply(lambda x: f"{x:.2e}"),
+                "u_p (erg/cm³)": results[5].apply(lambda x: f"{x:.2e}"),
+                "u_B (erg/cm³)": results[6].apply(lambda x: f"{x:.2e}"),
+                "u_total (erg/cm³)": results[7].apply(lambda x: f"{x:.2e}")
+            })
+
             st.success("✅ Calculation complete!")
             st.dataframe(df_out)
 
-            # CSV download button
             csv_data = df_out.to_csv(index=False).encode("utf-8")
             st.download_button(
-                label="📥 Download Results (CSV)",
+                label="📅 Download Results (CSV)",
                 data=csv_data,
                 file_name="magnetic_fields_results.csv",
                 mime="text/csv"
             )
 
-# ✅ Credits: Always visible at the bottom
 st.markdown(
     """
     <hr style="margin-top: 3rem; margin-bottom: 1rem;">
