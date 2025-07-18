@@ -26,7 +26,7 @@ def compute_fields(alpha, g1, g2, v0, s_v0, l, b, w, D_l, Sf, x=X_FACTOR):
     s_v0_cgs = s_v0 * 1e-23
 
     p = 2 * alpha + 1
-    V = (4 / 3) * math.pi * l_cm * b_cm * w_cm #* 0.125
+    V = (4 / 3) * math.pi * l_cm * b_cm * w_cm * 0.125
     L1 = 4 * math.pi * D_l_cm**2 * s_v0_cgs * v0_hz**alpha
 
     T3 = (g2 - 1)**(2 - p) - (g1 - 1)**(2 - p)
